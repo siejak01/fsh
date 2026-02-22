@@ -1,0 +1,36 @@
+name: Täglicher Import
+
+# Läuft jeden Tag um 8 Uhr UTC
+on:
+  schedule:
+    - cron: '0 8 * * *'  # 8 Uhr UTC täglich
+  workflow_dispatch:  # erlaubt manuelles Ausführen
+
+jobs:
+  run-import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v3
+
+      - name: Python installieren
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Abhängigkeiten installieren
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: import.py ausführen
+        run: |
+          python import.py
+
+      - name: Änderungen committen
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add historie.csv
+          git commit -m "Automatisches Update der CSV" || echo "Keine Änderungen"
+          git push
