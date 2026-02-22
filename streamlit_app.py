@@ -5,7 +5,7 @@ import altair as alt
 from datetime import datetime
 
 st.set_page_config(page_title="Franz-Senn-Hütte Dashboard", layout="wide")
-st.title("🏔 Franz-Senn-Hütte – Belegungsübersicht")
+st.title("FSH – Belegungsübersicht")
 
 # ---------------------------
 # CSV laden
@@ -124,7 +124,7 @@ st.dataframe(
 # ---------------------------
 # Stacked Bar Chart: Aktuelle Auslastung
 # ---------------------------
-st.subheader("📊 Aktuelle Auslastung (Fix / Online gebucht)")
+st.subheader("Aktuelle Auslastung")
 
 stack_data = combined.melt(
     id_vars=["Buchungsdatum"],
@@ -138,7 +138,7 @@ chart = alt.Chart(stack_data).mark_bar().encode(
     y=alt.Y("Plaetze:Q", title="Belegte Betten"),
     color=alt.Color("Typ:N", scale=alt.Scale(
         domain=["OnlineGebucht","FixGebucht"],
-        range=["#FFEB3B","#F44336"]
+        range=["#7EFCAE","#FF8279"]
     ))
 )
 
@@ -147,7 +147,7 @@ st.altair_chart(chart, use_container_width=True)
 # ---------------------------
 # Historische Min/Max Belegung
 # ---------------------------
-st.subheader("📈 Historische minimale und maximale Belegung")
+st.subheader("Minimale und maximale Belegung")
 
 # Alle gültigen historischen Tage
 hist_df = df[df["FreiePlaetze"].notna() & (df["Status"].str.upper() != "CLOSED")].copy()
@@ -156,18 +156,18 @@ hist_df["Belegt"] = KAPAZITAET - hist_df["FreiePlaetze"]
 # Min/Max pro Tag
 minmax_df = hist_df.groupby("Buchungsdatum")["Belegt"].agg(["min","max"]).reset_index()
 
-area = alt.Chart(minmax_df).mark_area(opacity=0.3, color="#FF5722").encode(
+area = alt.Chart(minmax_df).mark_area(opacity=0.3, color="#FF2222B5").encode(
     x="Buchungsdatum:T",
     y="min(Belegt):Q",
     y2="max(Belegt):Q"
 )
 
-line_min = alt.Chart(minmax_df).mark_line(color="#F44336").encode(
+line_min = alt.Chart(minmax_df).mark_line(color="#A1362E").encode(
     x="Buchungsdatum:T",
     y="min(Belegt):Q"
 )
 
-line_max = alt.Chart(minmax_df).mark_line(color="#FF9800").encode(
+line_max = alt.Chart(minmax_df).mark_line(color="#00FF37A6").encode(
     x="Buchungsdatum:T",
     y="max(Belegt):Q"
 )
