@@ -4,7 +4,7 @@ import requests
 import altair as alt
 from datetime import datetime
 
-st.set_page_config(page_title="Franz-Senn-Hütte Dashboard", layout="wide")
+st.set_page_config(page_title="FSH Dashboard", layout="wide")
 st.title("FSH – Belegungsübersicht")
 
 # ---------------------------
@@ -167,10 +167,14 @@ minmax_df = (
     .reset_index()
 )
 
+
 minmax_df["Buchungsdatum"] = pd.to_datetime(minmax_df["Buchungsdatum"])
 
 # Spannweite berechnen
 minmax_df["Range"] = minmax_df["MaxBelegt"] - minmax_df["MinBelegt"]
+
+
+
 
 # Daten in Long-Format bringen
 bar_data = minmax_df.melt(
@@ -188,8 +192,7 @@ chart = alt.Chart(bar_data).mark_bar().encode(
         scale=alt.Scale(
             domain=["MinBelegt", "Range"],
             range=["#B0BEC5", "#FF5722"]
-        ),
-        legend=alt.Legend(title="Min / Spannweite")
+        )
     )
 )
 
