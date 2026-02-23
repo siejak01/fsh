@@ -1,5 +1,8 @@
 name: Täglicher Import
 
+permissions:
+  contents: write
+
 # Läuft jeden Tag um 8 Uhr UTC
 on:
   schedule:
