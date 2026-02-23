@@ -173,3 +173,5 @@ line_max = alt.Chart(minmax_df).mark_line(color="#00FF37A6").encode(
 )
 
 st.altair_chart(area + line_min + line_max, use_container_width=True)
+
+st.write(hist_df[hist_df["Buchungsdatum"] == "2026-02-23"][["Abrufdatum","FreiePlaetze","Belegt"]])
