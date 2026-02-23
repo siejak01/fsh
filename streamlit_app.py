@@ -147,31 +147,50 @@ st.altair_chart(chart, use_container_width=True)
 # ---------------------------
 # Historische Min/Max Belegung
 # ---------------------------
-st.subheader("Minimale und maximale Belegung")
+# ---------------------------
+# Historische Min/Max Belegung als Balken
+# ---------------------------
+st.subheader("Historische minimale und maximale Belegung")
 
-# Alle gültigen historischen Tage
-hist_df = df[df["FreiePlaetze"].notna() & (df["Status"].str.upper() != "CLOSED")].copy()
+hist_df = df.copy()
+hist_df = hist_df[hist_df["Status"].str.upper() != "CLOSED"]
+
+hist_df["FreiePlaetze"] = pd.to_numeric(hist_df["FreiePlaetze"], errors="coerce")
+hist_df = hist_df[hist_df["FreiePlaetze"].notna()]
+
 hist_df["Belegt"] = KAPAZITAET - hist_df["FreiePlaetze"]
 
-# Min/Max pro Tag
-minmax_df = hist_df.groupby("Buchungsdatum")["Belegt"].agg(["min","max"]).reset_index()
-
-area = alt.Chart(minmax_df).mark_area(opacity=0.3, color="#FF2222B5").encode(
-    x="Buchungsdatum:T",
-    y="min(Belegt):Q",
-    y2="max(Belegt):Q"
+minmax_df = (
+    hist_df
+    .groupby("Buchungsdatum")["Belegt"]
+    .agg(MinBelegt="min", MaxBelegt="max")
+    .reset_index()
 )
 
-line_min = alt.Chart(minmax_df).mark_line(color="#A1362E").encode(
-    x="Buchungsdatum:T",
-    y="min(Belegt):Q"
+minmax_df["Buchungsdatum"] = pd.to_datetime(minmax_df["Buchungsdatum"])
+
+# Spannweite berechnen
+minmax_df["Range"] = minmax_df["MaxBelegt"] - minmax_df["MinBelegt"]
+
+# Daten in Long-Format bringen
+bar_data = minmax_df.melt(
+    id_vars=["Buchungsdatum"],
+    value_vars=["MinBelegt", "Range"],
+    var_name="Typ",
+    value_name="Wert"
 )
 
-line_max = alt.Chart(minmax_df).mark_line(color="#00FF37A6").encode(
-    x="Buchungsdatum:T",
-    y="max(Belegt):Q"
+chart = alt.Chart(bar_data).mark_bar().encode(
+    x=alt.X("Buchungsdatum:T", title="Datum"),
+    y=alt.Y("Wert:Q", title="Belegte Betten"),
+    color=alt.Color(
+        "Typ:N",
+        scale=alt.Scale(
+            domain=["MinBelegt", "Range"],
+            range=["#B0BEC5", "#FF5722"]
+        ),
+        legend=alt.Legend(title="Min / Spannweite")
+    )
 )
 
-st.altair_chart(area + line_min + line_max, use_container_width=True)
-
-st.write(hist_df[hist_df["Buchungsdatum"] == "2026-02-23"][["Abrufdatum","FreiePlaetze","Belegt"]])
+st.altair_chart(chart, use_container_width=True)
