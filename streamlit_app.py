@@ -168,7 +168,7 @@ def render_map(df: pd.DataFrame):
             layers=[scatter, text],
             initial_view_state=view_state,
             tooltip={"text": "{Huette}\n{label}"},
-            map_style="mapbox://styles/mapbox/light-v9",
+            map_style="mapbox://styles/mapbox/satellite-v9",
         ),
         use_container_width=True,
     )
