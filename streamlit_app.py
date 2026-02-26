@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import altair as alt
 import pandas as pd
 import pydeck as pdk
@@ -9,16 +11,8 @@ st.title("Belegungsübersicht Alpenvereinshütten")
 
 HUT_COORDS = {
     "Franz Senn Hütte": {"lat": 47.085, "lon": 11.195, "fix_kapazitaet": 130},
-    "Regensburger Hütte": {
-        "lat": 47.054769090700326,
-        "lon": 11.198342789601003,
-        "fix_kapazitaet": 85,
-    },
-    "Starkenburger Hütte": {
-        "lat": 47.126873249997395,
-        "lon": 11.279589453978218,
-        "fix_kapazitaet": 90,
-    },
+    "Regensburger Hütte": {"lat": 46.9757, "lon": 11.1349, "fix_kapazitaet": 85},
+    "Starkenburger Hütte": {"lat": 47.1148, "lon": 11.1593, "fix_kapazitaet": 90},
 }
 
 
@@ -89,88 +83,17 @@ def load_weather(lat: float, lon: float):
         return pd.DataFrame()
 
 
-def get_map_data(df: pd.DataFrame) -> pd.DataFrame:
-    today = pd.Timestamp.today().normalize()
-    map_rows = []
-
-    for hut, coords in HUT_COORDS.items():
-        hut_df = df[(df["Huette"] == hut) & (df["Status"].str.upper() != "CLOSED")].copy()
-        if hut_df.empty:
-            free_beds_text = "keine Daten"
-        else:
-            hut_df["FreiePlaetze"] = pd.to_numeric(hut_df["FreiePlaetze"], errors="coerce")
-            hut_df = hut_df[hut_df["FreiePlaetze"].notna()].copy()
-
-            latest_snapshot = hut_df["Abrufdatum"].max()
-            snapshot_df = hut_df[hut_df["Abrufdatum"] == latest_snapshot]
-
-            today_match = snapshot_df[snapshot_df["Buchungsdatum"].dt.normalize() == today]
-            if not today_match.empty:
-                free_beds = int(today_match.iloc[0]["FreiePlaetze"])
-                free_beds_text = f"{free_beds} frei heute"
-            else:
-                next_match = snapshot_df[snapshot_df["Buchungsdatum"] >= today].sort_values("Buchungsdatum")
-                if next_match.empty:
-                    free_beds_text = "keine aktuellen Daten"
-                else:
-                    free_beds = int(next_match.iloc[0]["FreiePlaetze"])
-                    date_text = next_match.iloc[0]["Buchungsdatum"].strftime("%d.%m")
-                    free_beds_text = f"{free_beds} frei ({date_text})"
-
-        map_rows.append(
-            {
-                "Huette": hut,
-                "lat": coords["lat"],
-                "lon": coords["lon"],
-                "label": f"{hut}\n{free_beds_text}",
-            }
-        )
-
-    return pd.DataFrame(map_rows)
-
-
-def render_map(df: pd.DataFrame):
+def render_map():
     st.subheader("🗺️ Hüttenkarte")
-    map_df = get_map_data(df)
-
-    view_state = pdk.ViewState(
-        latitude=map_df["lat"].mean(),
-        longitude=map_df["lon"].mean(),
-        zoom=9.2,
-        pitch=0,
+    map_df = pd.DataFrame(
+        [
+            {"Huette": hut, "lat": data["lat"], "lon": data["lon"]}
+            for hut, data in HUT_COORDS.items()
+        ]
     )
-
-    scatter = pdk.Layer(
-        "ScatterplotLayer",
-        data=map_df,
-        get_position="[lon, lat]",
-        get_fill_color="[255, 99, 71, 220]",
-        get_line_color="[255, 255, 255, 255]",
-        line_width_min_pixels=1,
-        stroked=True,
-        pickable=True,
-        get_radius=300,
-    )
-
-    text = pdk.Layer(
-        "TextLayer",
-        data=map_df,
-        get_position="[lon, lat]",
-        get_text="label",
-        get_size=14,
-        get_color="[20, 20, 20, 255]",
-        get_alignment_baseline="top",
-        get_pixel_offset="[0, 20]",
-    )
-
-    st.pydeck_chart(
-        pdk.Deck(
-            layers=[scatter, text],
-            initial_view_state=view_state,
-            tooltip={"text": "{Huette}\n{label}"},
-            map_style="mapbox://styles/mapbox/light-v9",
-        ),
-        use_container_width=True,
+    st.map(map_df.rename(columns={"lat": "latitude", "lon": "longitude"}))
+    st.caption(
+        "Enthalten: Franz Senn Hütte, Regensburger Hütte, Starkenburger Hütte"
     )
 
 
@@ -178,7 +101,7 @@ df = load_data()
 if df.empty:
     st.stop()
 
-render_map(df)
+render_map()
 
 selected_hut = st.selectbox("Hütte auswählen", sorted(df["Huette"].dropna().unique()))
 
